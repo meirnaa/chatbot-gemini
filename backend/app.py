@@ -1,11 +1,11 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS 
 import google.generativeai as genai
-from config import API_KEY
 from PIL import Image
 import io
 
 import os
+API_KEY = os.getenv("API_KEY")
 
 app = Flask(
     __name__,
