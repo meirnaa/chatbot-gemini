@@ -3,22 +3,24 @@ from flask_cors import CORS
 import google.generativeai as genai
 from PIL import Image
 import io
-
 import os
+
 API_KEY = os.getenv("API_KEY")
 
 app = Flask(
     __name__,
     static_folder="../frontend",
     static_url_path=""
-
 )
 CORS(app, origins="*")
 
 # Inicializar Gemini
 genai.configure(api_key=API_KEY)
-
 model = genai.GenerativeModel('gemini-1.5-flash')
+
+@app.route("/")
+def home():
+    return send_from_directory(app.static_folder, "chatbot.html")
 
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -42,7 +44,6 @@ def chat():
 
         response = model.generate_content(parts)
 
-        # Confirma se resposta tem conteúdo
         if hasattr(response, "text"):
             return jsonify({"resposta": response.text})
         else:
@@ -55,8 +56,3 @@ def chat():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
-
-
-@app.route("/")
-def home():
-    return send_from_directory(app.static_folder, "chatbot.html")
