@@ -1,2 +1,2 @@
 #!/bin/bash
-pip install -r backend/requirements.txt
+cd backend && pip install -r requirements.txt
