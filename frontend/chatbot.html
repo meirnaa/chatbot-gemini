@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assistente Gemini</title>
+  <link rel="stylesheet" href="./style.css"/>
+</head>
+<body>
+    <div class="corpo">
+        <h1>Como posso ajudar?</h1>
+        <input type="file" id="imageInput"><br><br>
+        <textarea id="userInput" rows="4" cols="50" placeholder="Digite sua pergunta..."></textarea><br>
+        <button id="enviarBtn" onclick="enviar()">Enviar</button>
+        <button id="limparBtn" onclick="limparChat()">Limpar Chat</button>
+        <p id="divisor">  ྀི◟ ͜  ◞ ྀི◟  ͜  ◞ ྀི◟◞  ྀི◟ ͜  ◞ ྀི◟  ͜  ◞ ྀི◞  ྀི◟ ͜  ◞ ྀི◟  ͜  ◞ ྀི◟ ◞  ྀི◟ ͜  ◞ ྀ◟  ͜  ◞ ྀི◞  ྀི◟ ͜  ◞ ྀི  ͜  ◞ ྀི◟ ◞  ྀི◟ ͜  ◞ ྀི◟  ͜  ◞ ྀི</p>
+        <div id="borda">
+          <div id="chat"></div>
+        </div>
+    </div>
+
+  <script>
+    async function enviar() {
+      const input = document.getElementById("userInput").value.trim();
+      const file = document.getElementById("imageInput").files[0];
+      const chat = document.getElementById("chat");
+      const btn = document.getElementById("enviarBtn");
+
+      if (!input && !file) return;
+
+      const formData = new FormData();
+      formData.append("text", input);
+      if (file) formData.append("image", file);
+
+      // Mostrar mensagem do usuário no chat
+      if (input) {
+        adicionarMensagem(input, "usuario");
+      }
+
+      // Adicionar "Carregando..." temporariamente
+      const msgLoading = adicionarMensagem("Carregando resposta...", "assistente");
+      btn.disabled = true;
+
+      try {
+        const res = await fetch("http://localhost:5000/chat", {
+          method: "POST",
+          body: formData
+        });
+
+        if (!res.ok) {
+          const erroTexto = await res.text();
+          throw new Error(res.status === 429
+            ? "Limite de uso atingido. Aguarde 1 minuto."
+            : `Erro no servidor: ${erroTexto}`);
+        }
+
+        const data = await res.json();
+        msgLoading.textContent = data.resposta || data.erro;
+
+      } catch (erro) {
+        console.error("Erro:", erro);
+        msgLoading.textContent = "Erro: " + erro.message;
+      } finally {
+        btn.disabled = false;
+        document.getElementById("userInput").value = "";
+        document.getElementById("imageInput").value = "";
+      }
+    }
+
+    function adicionarMensagem(texto, tipo) {
+      const chat = document.getElementById("chat");
+      const msg = document.createElement("div");
+      msg.classList.add("mensagem", tipo);
+      msg.textContent = texto;
+      chat.appendChild(msg);
+      chat.scrollTop = chat.scrollHeight; // scroll automático para baixo
+      return msg;
+    }
+
+    function limparChat() {
+        chat.innerHTML = "";
+    }
+  </script>
+</body>
+</html>
