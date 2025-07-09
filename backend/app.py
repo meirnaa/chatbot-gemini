@@ -18,6 +18,23 @@ CORS(app, origins="*")
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
+# Contexto do assistente gastronômico
+contexto_base = (
+    "Você é um assistente virtual especializado em gastronomia. "
+    "Ajude usuários com receitas, técnicas culinárias, dicas de preparo, substituições de ingredientes, "
+    "harmonização de pratos com bebidas, culinária brasileira e internacional. "
+    "Seja simpático, claro e **responda de forma resumida, mas eficiente**."
+)
+
+faq_exemplos = (
+    "Algumas perguntas frequentes que você costuma responder:\n"
+    "- Como fazer um estrogonofe simples?\n"
+    "- Qual o melhor acompanhamento para salmão grelhado?\n"
+    "- Como substituir o leite condensado em uma receita?\n"
+    "- O que são cortes como 'entrecôte' e 'contrafilé'?\n"
+    "- Dicas para fazer massa de pizza crocante?\n"
+)
+
 @app.route("/")
 def home():
     return send_from_directory(app.static_folder, "chatbot.html")
@@ -29,8 +46,12 @@ def chat():
         image_file = request.files.get("image")
 
         parts = []
+        parts.append(contexto_base)
+        parts.append(faq_exemplos)
+
         if text:
             parts.append(text)
+
         if image_file:
             try:
                 image_bytes = image_file.read()
@@ -39,7 +60,7 @@ def chat():
             except Exception as img_error:
                 return jsonify({"erro": f"Erro ao processar imagem: {str(img_error)}"}), 400
 
-        if not parts:
+        if not text and not image_file:
             return jsonify({"erro": "Nenhum conteúdo enviado."}), 400
 
         response = model.generate_content(parts)
