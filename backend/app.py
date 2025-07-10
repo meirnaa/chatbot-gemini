@@ -18,7 +18,8 @@ CORS(app, origins="*")
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
-conversa = []
+# Criar chat com memória
+chat = model.start_chat(history=[])
 
 # Contexto do assistente gastronômico
 contexto_base = (
@@ -28,40 +29,28 @@ contexto_base = (
     "Seja simpático, claro e **responda de forma resumida, mas eficiente**."
 )
 
-faq_exemplos = (
-    "Algumas perguntas frequentes que você costuma responder:\n"
-    "- Como fazer um estrogonofe simples?\n"
-    "- Qual o melhor acompanhamento para salmão grelhado?\n"
-    "- Como substituir o leite condensado em uma receita?\n"
-    "- O que são cortes como 'entrecôte' e 'contrafilé'?\n"
-    "- Dicas para fazer massa de pizza crocante?\n"
-)
-
 @app.route("/")
 def home():
     return send_from_directory(app.static_folder, "chatbot.html")
 
 @app.route("/reset", methods=["POST"])
 def reset_conversa():
-    global conversa
-    conversa = []
+    global chat
+    chat = model.start_chat(history=[])
     return jsonify({"status": "conversa resetada"})
 
 @app.route("/chat", methods=["POST"])
-def chat():
+def chat_route():
     try:
         text = request.form.get("text")
         image_file = request.files.get("image")
 
-        global conversa
-        
-        # Iniciar com system (contexto + instrução de comportamento)
-        if not conversa:
-            conversa.append({"role": "system", "parts": contexto_base + "\n" + faq_exemplos})
-        
-        # Adiciona a nova pergunta do usuário
+        if not text and not image_file:
+            return jsonify({"erro": "Nenhum conteúdo enviado."}), 400
+
+        parts = [contexto_base]
         if text:
-            conversa.append({"role": "user", "parts": text})
+            parts.append(text)
 
         if image_file:
             try:
@@ -71,16 +60,13 @@ def chat():
             except Exception as img_error:
                 return jsonify({"erro": f"Erro ao processar imagem: {str(img_error)}"}), 400
 
-        if not text and not image_file:
-            return jsonify({"erro": "Nenhum conteúdo enviado."}), 400
-
-        response = model.generate_content(conversa)
+        # Enviar mensagem mantendo o histórico
+        response = chat.send_message(parts)
 
         if hasattr(response, "text"):
-            conversa.append({"role": "model", "parts": response.text})
             return jsonify({"resposta": response.text})
         else:
-            return jsonify({"erro": "Resposta do modelo está vazia ou malformada."}), 500
+            return jsonify({"erro": "Resposta vazia."}), 500
 
     except Exception as e:
         print("Erro geral no /chat:", e)
