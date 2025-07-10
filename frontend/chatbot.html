@@ -6,6 +6,7 @@
   <title>Assistente Gastronômico</title>
   <link rel="stylesheet" href="./style.css"/>
   <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <script src="https://unpkg.com/@dotlottie/player-component@latest/dist/dotlottie-player.js" type="module"></script>
 </head>
 <body>
     <div class="corpo">
@@ -43,12 +44,10 @@
       formData.append("text", input);
       if (file) formData.append("image", file);
 
-      // Mostrar mensagem do usuário no chat
       if (input) {
         adicionarMensagem(input, "usuario");
       }
 
-      // Adicionar "Carregando..." temporariamente
       const msgLoading = adicionarMensagem("Carregando resposta...", "assistente");
       btn.disabled = true;
 
@@ -84,12 +83,21 @@
       msg.classList.add("mensagem", tipo);
       msg.textContent = texto;
       chat.appendChild(msg);
-      chat.scrollTop = chat.scrollHeight; // scroll automático para baixo
+      chat.scrollTop = chat.scrollHeight;
       return msg;
     }
 
     function limparChat() {
         chat.innerHTML = "";
+
+        fetch("/reset", { method: "POST" })
+          .then((res) => {
+            if (!res.ok) throw new Error("Erro ao resetar conversa");
+            console.log("Conversa resetada com sucesso!");
+          })
+          .catch((err) => {
+            console.error("Erro ao resetar:", err);
+          });
     }
   </script>
 </body>
