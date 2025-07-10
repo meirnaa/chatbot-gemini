@@ -18,6 +18,8 @@ CORS(app, origins="*")
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
+conversa = []
+
 # Contexto do assistente gastronômico
 contexto_base = (
     "Você é um assistente virtual especializado em gastronomia. "
@@ -39,18 +41,27 @@ faq_exemplos = (
 def home():
     return send_from_directory(app.static_folder, "chatbot.html")
 
+@app.route("/reset", methods=["POST"])
+def reset_conversa():
+    global conversa
+    conversa = []
+    return jsonify({"status": "conversa resetada"})
+
 @app.route("/chat", methods=["POST"])
 def chat():
     try:
         text = request.form.get("text")
         image_file = request.files.get("image")
 
-        parts = []
-        parts.append(contexto_base)
-        parts.append(faq_exemplos)
-
+        global conversa
+        
+        # Iniciar com system (contexto + instrução de comportamento)
+        if not conversa:
+            conversa.append({"role": "system", "parts": contexto_base + "\n" + faq_exemplos})
+        
+        # Adiciona a nova pergunta do usuário
         if text:
-            parts.append(text)
+            conversa.append({"role": "user", "parts": text})
 
         if image_file:
             try:
@@ -63,9 +74,10 @@ def chat():
         if not text and not image_file:
             return jsonify({"erro": "Nenhum conteúdo enviado."}), 400
 
-        response = model.generate_content(parts)
+        response = model.generate_content(conversa)
 
         if hasattr(response, "text"):
+            conversa.append({"role": "model", "parts": response.text})
             return jsonify({"resposta": response.text})
         else:
             return jsonify({"erro": "Resposta do modelo está vazia ou malformada."}), 500
